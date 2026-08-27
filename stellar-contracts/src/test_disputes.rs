@@ -40,7 +40,13 @@ fn setup() -> (
     (env, client, admin, owner, target, arbitrator, pet_id)
 }
 
-fn raise(client: &PetChainContractClient, env: &Env, pet_id: u64, owner: &Address, target: &Address) -> u64 {
+fn raise(
+    client: &PetChainContractClient,
+    env: &Env,
+    pet_id: u64,
+    owner: &Address,
+    target: &Address,
+) -> u64 {
     client.raise_dispute(
         &pet_id,
         owner,
@@ -77,11 +83,7 @@ fn test_dispute_state_machine_happy_path_and_appeal() {
         client.get_dispute(&dispute_id).unwrap().status,
         DisputeStatus::UnderReview
     );
-    assert!(client.rule(
-        &dispute_id,
-        &arbitrator,
-        &DisputeOutcome::InFavorOfClaimer,
-    ));
+    assert!(client.rule(&dispute_id, &arbitrator, &DisputeOutcome::InFavorOfClaimer,));
     let resolved = client.get_dispute(&dispute_id).unwrap();
     assert_eq!(resolved.status, DisputeStatus::Resolved);
     assert_eq!(resolved.resolved_at, Some(1_000));
@@ -103,6 +105,16 @@ fn test_non_arbitrator_cannot_rule() {
     let dispute_id = raise(&client, &env, pet_id, &owner, &target);
     client.submit_evidence(
         &dispute_id,
+        &target,
+        &String::from_str(&env, "ipfs://target-evidence"),
+    );
+    client.start_review(&dispute_id, &arbitrator);
+
+    client.rule(&dispute_id, &stranger, &DisputeOutcome::InFavorOfTarget);
+}
+
+#[test]
+#[should_panic]
 fn test_resolve_dispute_no_admin_fails() {
     let env = Env::default();
     env.mock_all_auths();
@@ -112,21 +124,30 @@ fn test_resolve_dispute_no_admin_fails() {
 
     let owner = Address::generate(&env);
     let target = Address::generate(&env);
-
-    let pet_id = 1; // Dummy ID for this test
-
-    let dispute_id = client.raise_dispute(
-        &pet_id,
+    let arbitrator = Address::generate(&env);
+    let pet_id = client.register_pet(
         &owner,
-        &String::from_str(&env, "ipfs://owner-evidence"),
+        &String::from_str(&env, "Casey"),
+        &String::from_str(&env, "2021-06-01"),
+        &Gender::Male,
+        &Species::Dog,
+        &String::from_str(&env, "Brown"),
+        &String::from_str(&env, "Mixed"),
+        &20u32,
+        &None,
+        &PrivacyLevel::Public,
+    );
+
+    let dispute_id = raise(&client, &env, pet_id, &owner, &target);
+    client.submit_evidence(
+        &dispute_id,
+        &target,
+        &String::from_str(&env, "ipfs://target-evidence"),
     );
     client.start_review(&dispute_id, &arbitrator);
 
-    client.rule(
-        &dispute_id,
-        &stranger,
-        &DisputeOutcome::InFavorOfTarget,
-    );
+    let stranger = Address::generate(&env);
+    client.rule(&dispute_id, &stranger, &DisputeOutcome::InFavorOfTarget);
 }
 
 #[test]
@@ -136,11 +157,7 @@ fn test_invalid_transition_rule_before_evidence_rejected() {
     client.assign_arbitrator(&admin, &arbitrator);
     let dispute_id = raise(&client, &env, pet_id, &owner, &target);
 
-    client.rule(
-        &dispute_id,
-        &arbitrator,
-        &DisputeOutcome::Split,
-    );
+    client.rule(&dispute_id, &arbitrator, &DisputeOutcome::Split);
 }
 
 #[test]
@@ -172,11 +189,7 @@ fn test_late_appeal_rejected() {
 
     env.ledger().set_timestamp(100);
     client.start_review(&dispute_id, &arbitrator);
-    client.rule(
-        &dispute_id,
-        &arbitrator,
-        &DisputeOutcome::InFavorOfTarget,
-    );
+    client.rule(&dispute_id, &arbitrator, &DisputeOutcome::InFavorOfTarget);
     env.ledger().set_timestamp(111);
 
     client.appeal(&dispute_id, &owner);

@@ -68,6 +68,14 @@ fn test_keyword_index_is_per_pet() {
         pet_one_results.get(0).unwrap().diagnosis,
         String::from_str(&env, "Pet one")
     );
+    let pet_two_results = client.search_by_keyword(&pet_two, &String::from_str(&env, "shared"));
+    assert_eq!(pet_two_results.len(), 1);
+    assert_eq!(
+        pet_two_results.get(0).unwrap().diagnosis,
+        String::from_str(&env, "Pet two")
+    );
+}
+
 #[cfg(test)]
 mod test_medical_records_pagination {
     use crate::{Gender, PetChainContract, PetChainContractClient, PrivacyLevel, Species};

@@ -1,8 +1,10 @@
-use crate::two_factor::{AuditLogEntry, RecoveryCodeUsageLog, TwoFactorData, TwoFactorStore, UserTwoFactorSummary};
+use crate::two_factor::{
+    AuditLogEntry, RecoveryCodeUsageLog, TwoFactorData, TwoFactorStore, UserTwoFactorSummary,
+};
 use sqlx::{postgres::PgPoolOptions, PgPool};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
-use std::collections::HashMap;
 
 /// Trait for fetching secrets (e.g. DB connection strings).
 pub trait SecretProvider: Send + Sync {
@@ -37,7 +39,10 @@ impl SecretProvider for AwsSecretsManagerProvider {
 
 /// Select provider by env var `SECRET_PROVIDER` ("env" or "aws").
 pub fn select_secret_provider() -> Box<dyn SecretProvider> {
-    match std::env::var("SECRET_PROVIDER").unwrap_or_else(|_| "env".to_string()).as_str() {
+    match std::env::var("SECRET_PROVIDER")
+        .unwrap_or_else(|_| "env".to_string())
+        .as_str()
+    {
         "aws" => Box::new(AwsSecretsManagerProvider {}),
         _ => Box::new(EnvSecretProvider {}),
     }
@@ -60,7 +65,10 @@ impl PostgresTwoFactorStore {
     }
 
     /// Connect using a SecretProvider to fetch the `secret_key` value.
-    pub fn connect_with_provider(provider: &dyn SecretProvider, secret_key: &str) -> Result<Self, String> {
+    pub fn connect_with_provider(
+        provider: &dyn SecretProvider,
+        secret_key: &str,
+    ) -> Result<Self, String> {
         let database_url = provider.get_secret(secret_key)?;
         PostgresTwoFactorStore::connect(&database_url)
     }
@@ -261,11 +269,7 @@ impl TwoFactorStore for PostgresTwoFactorStore {
             .collect())
     }
 
-    fn list_users(
-        &self,
-        page: u32,
-        page_size: u32,
-    ) -> Result<Vec<UserTwoFactorSummary>, String> {
+    fn list_users(&self, page: u32, page_size: u32) -> Result<Vec<UserTwoFactorSummary>, String> {
         let offset = (page.saturating_sub(1)) * page_size;
         let limit = page_size as i64;
 
@@ -301,11 +305,7 @@ impl TwoFactorStore for PostgresTwoFactorStore {
             .collect())
     }
 
-    fn admin_disable_two_fa(
-        &self,
-        user_id: &str,
-        admin_id: &str,
-    ) -> Result<(), String> {
+    fn admin_disable_two_fa(&self, user_id: &str, admin_id: &str) -> Result<(), String> {
         self.update_enabled(user_id, false)?;
         self.append_audit_log(user_id, "admin_disabled_2fa", admin_id, None)?;
         Ok(())
@@ -407,11 +407,9 @@ impl TwoFactorStore for PostgresTwoFactorStore {
 
     fn is_canary(&self, user_id: &str) -> bool {
         self.block_on(
-            sqlx::query_scalar::<_, i64>(
-                "SELECT COUNT(*) FROM canary_accounts WHERE user_id = $1",
-            )
-            .bind(user_id)
-            .fetch_one(&self.pool),
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM canary_accounts WHERE user_id = $1")
+                .bind(user_id)
+                .fetch_one(&self.pool),
         )
         .map(|c| c > 0)
         .unwrap_or(false)

@@ -10,7 +10,9 @@ pub mod webhooks;
 mod tests;
 
 pub use db::PostgresTwoFactorStore;
-pub use db::{select_secret_provider, AwsSecretsManagerProvider, EnvSecretProvider, SecretProvider};
+pub use db::{
+    select_secret_provider, AwsSecretsManagerProvider, EnvSecretProvider, SecretProvider,
+};
 pub use handlers::{
     AdminDashboardHandlers, AdminScoreHandlers, AuthenticatedAdmin, AuthenticatedUser,
     CanaryHandlers, CreateCanaryRequest, CreateCanaryResponse, TwoFactorHandlers,

@@ -276,10 +276,7 @@ fn test_get_insurance_claim_count_no_claims() {
     assert_eq!(client.get_insurance_claim_count(&pet_id), 0);
 }
 
-fn setup_pet_with_claims(
-    env: &Env,
-    client: &PetChainContractClient,
-) -> u64 {
+fn setup_pet_with_claims(env: &Env, client: &PetChainContractClient) -> u64 {
     let owner = Address::generate(env);
     let pet_id = client.register_pet(
         &owner,
@@ -317,8 +314,12 @@ fn test_get_claims_by_status_pending() {
 
     let pet_id = setup_pet_with_claims(&env, &client);
 
-    let id1 = client.submit_insurance_claim(&pet_id, &100, &String::from_str(&env, "Checkup")).unwrap();
-    let id2 = client.submit_insurance_claim(&pet_id, &200, &String::from_str(&env, "X-ray")).unwrap();
+    let id1 = client
+        .submit_insurance_claim(&pet_id, &100, &String::from_str(&env, "Checkup"))
+        .unwrap();
+    let id2 = client
+        .submit_insurance_claim(&pet_id, &200, &String::from_str(&env, "X-ray"))
+        .unwrap();
     client.update_insurance_claim_status(&id2, &InsuranceClaimStatus::Approved);
 
     let pending = client.get_claims_by_status(&pet_id, &InsuranceClaimStatus::Pending);
@@ -335,8 +336,12 @@ fn test_get_claims_by_status_approved() {
 
     let pet_id = setup_pet_with_claims(&env, &client);
 
-    let id1 = client.submit_insurance_claim(&pet_id, &300, &String::from_str(&env, "Surgery")).unwrap();
-    let id2 = client.submit_insurance_claim(&pet_id, &400, &String::from_str(&env, "Meds")).unwrap();
+    let id1 = client
+        .submit_insurance_claim(&pet_id, &300, &String::from_str(&env, "Surgery"))
+        .unwrap();
+    let id2 = client
+        .submit_insurance_claim(&pet_id, &400, &String::from_str(&env, "Meds"))
+        .unwrap();
     client.update_insurance_claim_status(&id1, &InsuranceClaimStatus::Approved);
     client.update_insurance_claim_status(&id2, &InsuranceClaimStatus::Approved);
 
@@ -353,7 +358,9 @@ fn test_get_claims_by_status_rejected() {
 
     let pet_id = setup_pet_with_claims(&env, &client);
 
-    let id1 = client.submit_insurance_claim(&pet_id, &500, &String::from_str(&env, "Cosmetic")).unwrap();
+    let id1 = client
+        .submit_insurance_claim(&pet_id, &500, &String::from_str(&env, "Cosmetic"))
+        .unwrap();
     client.update_insurance_claim_status(&id1, &InsuranceClaimStatus::Rejected);
     client.submit_insurance_claim(&pet_id, &600, &String::from_str(&env, "Dental"));
 
@@ -371,7 +378,9 @@ fn test_get_claims_by_status_paid() {
 
     let pet_id = setup_pet_with_claims(&env, &client);
 
-    let id1 = client.submit_insurance_claim(&pet_id, &700, &String::from_str(&env, "Hip surgery")).unwrap();
+    let id1 = client
+        .submit_insurance_claim(&pet_id, &700, &String::from_str(&env, "Hip surgery"))
+        .unwrap();
     client.update_insurance_claim_status(&id1, &InsuranceClaimStatus::Paid);
 
     let paid = client.get_claims_by_status(&pet_id, &InsuranceClaimStatus::Paid);

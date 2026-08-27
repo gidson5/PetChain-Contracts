@@ -109,10 +109,7 @@ fn test_dominant_recessive_gives_75_percent() {
     );
 
     let predicted = client.compute_offspring_traits(&record_id);
-    assert_eq!(
-        predicted.get(String::from_str(&env, "size")),
-        Some(7500u32)
-    );
+    assert_eq!(predicted.get(String::from_str(&env, "size")), Some(7500u32));
 }
 
 #[test]
@@ -230,8 +227,5 @@ fn test_multiple_traits_computed_correctly() {
         predicted.get(String::from_str(&env, "coat_color")),
         Some(7500u32)
     );
-    assert_eq!(
-        predicted.get(String::from_str(&env, "size")),
-        Some(0u32)
-    );
+    assert_eq!(predicted.get(String::from_str(&env, "size")), Some(0u32));
 }
