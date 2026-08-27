@@ -778,7 +778,7 @@ fn test_nutrition_version_pruning_at_limit() {
     let versions = client.list_nutrition_versions(&pet_id);
     assert_eq!(versions.len(), 10);
     assert_eq!(versions.get(0).unwrap().version, 12u64); // Newest first
-    assert_eq!(versions.get(9).unwrap().version, 3u64);  // Oldest in list (v1 and v2 pruned)
+    assert_eq!(versions.get(9).unwrap().version, 3u64); // Oldest in list (v1 and v2 pruned)
 }
 
 #[test]

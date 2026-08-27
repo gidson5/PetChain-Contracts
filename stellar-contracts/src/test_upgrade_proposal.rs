@@ -1,5 +1,8 @@
 use crate::{PetChainContract, PetChainContractClient, ProposalAction};
-use soroban_sdk::{testutils::{Address as _, Ledger as _}, Address, BytesN, Env, Vec};
+use soroban_sdk::{
+    testutils::{Address as _, Ledger as _},
+    Address, BytesN, Env, Vec,
+};
 
 fn setup(env: &Env) -> (PetChainContractClient, Address, Address) {
     env.mock_all_auths();

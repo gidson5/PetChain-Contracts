@@ -288,7 +288,6 @@ fn test_insurance_policy_fields() {
 
 #[test]
 fn test_premium_estimate_has_no_state_change() {
-fn test_multiple_policies_per_pet() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -314,6 +313,25 @@ fn test_multiple_policies_per_pet() {
         &String::from_str(&env, "PetGuard"),
         &String::from_str(&env, "Basic"),
         &1000,
+        &50000,
+        &expiry,
+    );
+
+    let before = client.get_pet_insurance(&pet_id).unwrap().premium;
+    let estimate = client.get_premium_estimate(&pet_id, &PremiumTier::Premium);
+    let after = client.get_pet_insurance(&pet_id).unwrap().premium;
+
+    assert!(estimate > before);
+    assert_eq!(before, after);
+}
+
+#[test]
+fn test_multiple_policies_per_pet() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register_contract(None, PetChainContract);
+    let client = PetChainContractClient::new(&env, &contract_id);
 
     let owner = Address::generate(&env);
 
@@ -427,10 +445,7 @@ fn test_get_pet_insurance_returns_latest_policy() {
 
     assert!(estimate > before);
     assert_eq!(before, after);
-}
 
-#[test]
-fn test_premium_estimate_increases_by_tier() {
     client.add_insurance_policy(
         &pet_id,
         &String::from_str(&env, "LATEST-002"),
@@ -448,7 +463,7 @@ fn test_premium_estimate_increases_by_tier() {
 }
 
 #[test]
-fn test_get_all_pet_policies_empty() {
+fn test_premium_estimate_increases_by_tier() {
     let env = Env::default();
     env.mock_all_auths();
 
@@ -463,7 +478,23 @@ fn test_get_all_pet_policies_empty() {
         &Species::Dog,
         &String::from_str(&env, "Gold"),
         &String::from_str(&env, "Retriever"),
+        &12,
+        &None,
+        &PrivacyLevel::Public,
+    );
 
+    let basic = client.get_premium_estimate(&pet_id, &PremiumTier::Basic);
+    let premium = client.get_premium_estimate(&pet_id, &PremiumTier::Premium);
+    assert!(premium > basic);
+}
+
+#[test]
+fn test_get_all_pet_policies_empty() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register_contract(None, PetChainContract);
+    let client = PetChainContractClient::new(&env, &contract_id);
     let owner = Address::generate(&env);
 
     let pet_id = client.register_pet(
@@ -479,9 +510,6 @@ fn test_get_all_pet_policies_empty() {
         &PrivacyLevel::Public,
     );
 
-    let basic = client.get_premium_estimate(&pet_id, &PremiumTier::Basic);
-    let premium = client.get_premium_estimate(&pet_id, &PremiumTier::Premium);
-    assert!(premium > basic);
     let policies = client.get_all_pet_policies(&pet_id);
     assert_eq!(policies.len(), 0);
 }

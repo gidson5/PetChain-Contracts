@@ -379,12 +379,7 @@ impl AdminScoreHandlers {
     }
 
     /// Log a rejected score submission
-    pub fn log_rejected_submission(
-        &self,
-        user_id: String,
-        attempted_score: u64,
-        reason: String,
-    ) {
+    pub fn log_rejected_submission(&self, user_id: String, attempted_score: u64, reason: String) {
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
@@ -467,10 +462,7 @@ impl AdminDashboardHandlers {
     }
 
     /// POST /admin/users/{id}/disable-2fa — force-disable with audit log entry.
-    pub fn disable_two_fa(
-        admin: &AuthenticatedAdmin,
-        user_id: &str,
-    ) -> Result<(), String> {
+    pub fn disable_two_fa(admin: &AuthenticatedAdmin, user_id: &str) -> Result<(), String> {
         two_factor_store().admin_disable_two_fa(user_id, &admin.admin_id)
     }
 
@@ -559,12 +551,7 @@ impl CanaryHandlers {
         if store.is_canary(user_id) {
             // Log the trigger event
             let meta = ip_address.map(|ip| format!("ip={}", ip));
-            store.append_audit_log(
-                user_id,
-                "CanaryTriggered",
-                user_id,
-                meta.as_deref(),
-            )?;
+            store.append_audit_log(user_id, "CanaryTriggered", user_id, meta.as_deref())?;
 
             // Fire webhook immediately
             let mut metadata = HashMap::new();
@@ -572,11 +559,8 @@ impl CanaryHandlers {
                 metadata.insert("ip".to_string(), ip.to_string());
             }
             metadata.insert("user_id".to_string(), user_id.to_string());
-            self.webhook_manager.fire(
-                SecurityEventType::CanaryTriggered,
-                user_id,
-                metadata,
-            );
+            self.webhook_manager
+                .fire(SecurityEventType::CanaryTriggered, user_id, metadata);
 
             // Return false — canary accounts never grant access
             return Ok(false);

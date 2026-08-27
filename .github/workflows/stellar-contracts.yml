@@ -9,6 +9,20 @@ on:
 permissions: read-all
 
 jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check workspace formatting
+        run: cargo fmt --all --check
+
   audit:
     runs-on: ubuntu-latest
     steps:
@@ -73,3 +87,12 @@ jobs:
       - name: Test Stellar contracts
         working-directory: stellar-contracts
         run: cargo test
+
+      - name: Check optimized WASM size budget
+        run: |
+          WASM_PATH="target/wasm32-unknown-unknown/release/petchain_stellar.wasm"
+          MAX_WASM_BYTES=450000
+          test -f "$WASM_PATH"
+          WASM_BYTES=$(wc -c < "$WASM_PATH")
+          echo "Optimized WASM size: ${WASM_BYTES} bytes"
+          test "$WASM_BYTES" -le "$MAX_WASM_BYTES"

@@ -1461,7 +1461,11 @@ fn test_milestone_events_not_duplicated() {
     let streak_after = client.get_activity_streak(&pet_id);
     assert_eq!(streak_after.current_streak, 8);
     // Milestone vector should still only have one entry for 7 days
-    let milestone_count = streak_after.milestones_reached.iter().filter(|&&m| m == 7).count();
+    let milestone_count = streak_after
+        .milestones_reached
+        .iter()
+        .filter(|&&m| m == 7)
+        .count();
     assert_eq!(milestone_count, 1);
 }
 
@@ -1495,7 +1499,8 @@ fn test_streak_reset_preserves_longest() {
 
     // Build a 4-day streak
     for day in 0..4u64 {
-        env.ledger().with_mut(|l| l.timestamp = 1_000 + day * 86_400);
+        env.ledger()
+            .with_mut(|l| l.timestamp = 1_000 + day * 86_400);
         client.add_activity_record(
             &pet_id,
             &ActivityType::Walk,
@@ -1561,14 +1566,7 @@ fn test_activity_history_order_preserved() {
     ];
 
     for t in types.iter() {
-        client.add_activity_record(
-            &pet_id,
-            t,
-            &10,
-            &3,
-            &100,
-            &String::from_str(&env, "note"),
-        );
+        client.add_activity_record(&pet_id, t, &10, &3, &100, &String::from_str(&env, "note"));
     }
 
     let history = client.get_activity_history(&pet_id);
@@ -1676,7 +1674,8 @@ fn test_streaks_are_isolated_per_pet() {
 
     // Pet A: 3 consecutive days
     for day in 0..3u64 {
-        env.ledger().with_mut(|l| l.timestamp = 1_000 + day * 86_400);
+        env.ledger()
+            .with_mut(|l| l.timestamp = 1_000 + day * 86_400);
         client.add_activity_record(
             &pet_a,
             &ActivityType::Walk,

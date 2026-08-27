@@ -1,4 +1,7 @@
-use crate::{CustodyEntry, Gender, PetChainContract, PetChainContractClient, PrivacyLevel, Species, TransferType};
+use crate::{
+    CustodyEntry, Gender, PetChainContract, PetChainContractClient, PrivacyLevel, Species,
+    TransferType,
+};
 use soroban_sdk::{testutils::Address as _, Address, Env, String, Vec};
 
 fn setup(env: &Env) -> (PetChainContractClient, Address, Address) {

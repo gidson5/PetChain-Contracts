@@ -1578,7 +1578,10 @@ mod integration_tests {
                 flags: "01".to_string(),
             };
             let header = tc.to_header();
-            assert_eq!(header, "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01");
+            assert_eq!(
+                header,
+                "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+            );
         }
 
         #[test]
@@ -2043,7 +2046,9 @@ mod redis_rate_limiter_tests {
         }
         assert!(matches!(
             mock_record_failure(&state, "user:b", now_ms + 3, 3, 60, 300),
-            RateLimitResult::Blocked { retry_after_secs: 300 }
+            RateLimitResult::Blocked {
+                retry_after_secs: 300
+            }
         ));
     }
 
@@ -2405,11 +2410,7 @@ mod redis_rate_limiter_tests {
         #[test]
         fn admin_log_rejected_submission() {
             let admin = AdminScoreHandlers::new();
-            admin.log_rejected_submission(
-                "user1".into(),
-                5000,
-                "Exceeds delta".into(),
-            );
+            admin.log_rejected_submission("user1".into(), 5000, "Exceeds delta".into());
 
             let flagged = admin.get_all_flagged();
             assert_eq!(flagged.len(), 1);
@@ -2421,16 +2422,8 @@ mod redis_rate_limiter_tests {
         #[test]
         fn admin_get_flagged_by_user() {
             let admin = AdminScoreHandlers::new();
-            admin.log_rejected_submission(
-                "user1".into(),
-                5000,
-                "Exceeds delta".into(),
-            );
-            admin.log_rejected_submission(
-                "user2".into(),
-                3000,
-                "Suspicious".into(),
-            );
+            admin.log_rejected_submission("user1".into(), 5000, "Exceeds delta".into());
+            admin.log_rejected_submission("user2".into(), 3000, "Suspicious".into());
 
             let user1_flagged = admin.get_flagged_by_user("user1");
             let user2_flagged = admin.get_flagged_by_user("user2");
@@ -2444,16 +2437,8 @@ mod redis_rate_limiter_tests {
         #[test]
         fn admin_get_flagged_by_user_multiple_submissions() {
             let admin = AdminScoreHandlers::new();
-            admin.log_rejected_submission(
-                "user1".into(),
-                5000,
-                "Exceeds delta".into(),
-            );
-            admin.log_rejected_submission(
-                "user1".into(),
-                6000,
-                "Another violation".into(),
-            );
+            admin.log_rejected_submission("user1".into(), 5000, "Exceeds delta".into());
+            admin.log_rejected_submission("user1".into(), 6000, "Another violation".into());
 
             let user1_flagged = admin.get_flagged_by_user("user1");
             assert_eq!(user1_flagged.len(), 2);
@@ -2464,11 +2449,7 @@ mod redis_rate_limiter_tests {
         #[test]
         fn admin_get_flagged_by_nonexistent_user() {
             let admin = AdminScoreHandlers::new();
-            admin.log_rejected_submission(
-                "user1".into(),
-                5000,
-                "Exceeds delta".into(),
-            );
+            admin.log_rejected_submission("user1".into(), 5000, "Exceeds delta".into());
 
             let user2_flagged = admin.get_flagged_by_user("user2");
             assert!(user2_flagged.is_empty());
@@ -2497,10 +2478,7 @@ mod redis_rate_limiter_tests {
 
             for i in 0..5 {
                 assert_eq!(all_flagged[i].user_id, format!("user{}", i));
-                assert_eq!(
-                    all_flagged[i].attempted_score,
-                    1000 + (i as u64 * 100)
-                );
+                assert_eq!(all_flagged[i].attempted_score, 1000 + (i as u64 * 100));
             }
         }
 
@@ -2508,16 +2486,8 @@ mod redis_rate_limiter_tests {
         #[cfg(test)]
         fn admin_clear_flagged() {
             let admin = AdminScoreHandlers::new();
-            admin.log_rejected_submission(
-                "user1".into(),
-                5000,
-                "Exceeds delta".into(),
-            );
-            admin.log_rejected_submission(
-                "user2".into(),
-                3000,
-                "Suspicious".into(),
-            );
+            admin.log_rejected_submission("user1".into(), 5000, "Exceeds delta".into());
+            admin.log_rejected_submission("user2".into(), 3000, "Suspicious".into());
 
             assert_eq!(admin.get_all_flagged().len(), 2);
 
@@ -2528,11 +2498,7 @@ mod redis_rate_limiter_tests {
         #[test]
         fn admin_timestamp_is_set() {
             let admin = AdminScoreHandlers::new();
-            admin.log_rejected_submission(
-                "user1".into(),
-                5000,
-                "Test".into(),
-            );
+            admin.log_rejected_submission("user1".into(), 5000, "Test".into());
 
             let flagged = admin.get_all_flagged();
             assert!(flagged[0].timestamp > 0);
@@ -2542,11 +2508,7 @@ mod redis_rate_limiter_tests {
         fn admin_reason_is_preserved() {
             let admin = AdminScoreHandlers::new();
             let reason = "Custom reason for suspension";
-            admin.log_rejected_submission(
-                "user1".into(),
-                5000,
-                reason.into(),
-            );
+            admin.log_rejected_submission("user1".into(), 5000, reason.into());
 
             let flagged = admin.get_all_flagged();
             assert_eq!(flagged[0].reason, reason);
@@ -2556,11 +2518,7 @@ mod redis_rate_limiter_tests {
         fn admin_large_score_values() {
             let admin = AdminScoreHandlers::new();
             let max_score = u64::MAX;
-            admin.log_rejected_submission(
-                "user1".into(),
-                max_score,
-                "Max score".into(),
-            );
+            admin.log_rejected_submission("user1".into(), max_score, "Max score".into());
 
             let flagged = admin.get_all_flagged();
             assert_eq!(flagged[0].attempted_score, max_score);
@@ -2579,7 +2537,11 @@ mod mock_redis_tests {
     };
     use std::sync::Arc;
 
-    fn limiter(max: u32, window_secs: u64, lockout_secs: u64) -> SlidingWindowRateLimiter<MockRedisBackend> {
+    fn limiter(
+        max: u32,
+        window_secs: u64,
+        lockout_secs: u64,
+    ) -> SlidingWindowRateLimiter<MockRedisBackend> {
         SlidingWindowRateLimiter::new(
             MockRedisBackend::new(),
             EndpointConfig::new(window_secs, max, lockout_secs),
@@ -2592,17 +2554,24 @@ mod mock_redis_tests {
     fn allows_requests_below_limit() {
         let l = limiter(3, 60, 300);
         for i in 1u32..3 {
-            assert_eq!(l.record_failure("u:a"), RateLimitResult::Allowed { remaining: 3 - i });
+            assert_eq!(
+                l.record_failure("u:a"),
+                RateLimitResult::Allowed { remaining: 3 - i }
+            );
         }
     }
 
     #[test]
     fn blocks_at_limit_with_accurate_retry_after() {
         let l = limiter(3, 60, 120);
-        for _ in 0..3 { l.record_failure("u:b"); }
+        for _ in 0..3 {
+            l.record_failure("u:b");
+        }
         assert_eq!(
             l.record_failure("u:b"),
-            RateLimitResult::Blocked { retry_after_secs: 120 },
+            RateLimitResult::Blocked {
+                retry_after_secs: 120
+            },
         );
     }
 
@@ -2614,7 +2583,10 @@ mod mock_redis_tests {
         l.record_failure("u:c");
         l.record_failure("u:c");
         l.record_success("u:c");
-        assert_eq!(l.record_failure("u:c"), RateLimitResult::Allowed { remaining: 2 });
+        assert_eq!(
+            l.record_failure("u:c"),
+            RateLimitResult::Allowed { remaining: 2 }
+        );
     }
 
     #[test]
@@ -2626,7 +2598,10 @@ mod mock_redis_tests {
         // Advance clock past the 60-second window — entries are evicted on next call
         l.backend_advance_ms(61_000);
         // Window has expired; the two old entries are outside the cutoff, so Allowed with remaining=2
-        assert_eq!(l.record_failure("u:d"), RateLimitResult::Allowed { remaining: 2 });
+        assert_eq!(
+            l.record_failure("u:d"),
+            RateLimitResult::Allowed { remaining: 2 }
+        );
     }
 
     // --- concurrent / independent keys ---
@@ -2636,7 +2611,10 @@ mod mock_redis_tests {
         let l = limiter(2, 60, 300);
         l.record_failure("u:e");
         l.record_failure("u:e");
-        assert!(matches!(l.record_failure("u:f"), RateLimitResult::Allowed { .. }));
+        assert!(matches!(
+            l.record_failure("u:f"),
+            RateLimitResult::Allowed { .. }
+        ));
     }
 
     #[test]
@@ -2649,7 +2627,9 @@ mod mock_redis_tests {
                 thread::spawn(move || l.record_failure(&format!("u:thread:{i}")))
             })
             .collect();
-        for h in handles { h.join().expect("thread panicked"); }
+        for h in handles {
+            h.join().expect("thread panicked");
+        }
     }
 
     // --- per-endpoint config ---
@@ -2685,10 +2665,15 @@ mod mock_redis_tests {
     fn sliding_window_prevents_boundary_burst() {
         let l = limiter(3, 60, 300);
         // 3 failures just before the 60-second boundary
-        for _ in 0..3 { l.record_failure("u:g"); }
+        for _ in 0..3 {
+            l.record_failure("u:g");
+        }
         // Advance to exactly the boundary — entries are still within the window
         l.backend_advance_ms(59_999);
-        assert!(matches!(l.record_failure("u:g"), RateLimitResult::Blocked { .. }));
+        assert!(matches!(
+            l.record_failure("u:g"),
+            RateLimitResult::Blocked { .. }
+        ));
     }
 }
 
@@ -2827,16 +2812,18 @@ mod canary_tests {
     impl RecordingHttpClient {
         fn new() -> (Self, Arc<Mutex<Vec<String>>>) {
             let calls = Arc::new(Mutex::new(Vec::new()));
-            (Self { calls: calls.clone() }, calls)
+            (
+                Self {
+                    calls: calls.clone(),
+                },
+                calls,
+            )
         }
     }
 
     impl HttpClient for RecordingHttpClient {
         fn post(&self, url: &str, body: &str) -> Result<(), String> {
-            self.calls
-                .lock()
-                .unwrap()
-                .push(format!("{}:{}", url, body));
+            self.calls.lock().unwrap().push(format!("{}:{}", url, body));
             Ok(())
         }
     }
@@ -2899,9 +2886,16 @@ mod canary_tests {
 
         let store = get_two_factor_store_for_tests();
         let log = store.get_audit_log("canary-002", 1, 10).unwrap();
-        let triggered: Vec<_> = log.iter().filter(|e| e.event == "CanaryTriggered").collect();
+        let triggered: Vec<_> = log
+            .iter()
+            .filter(|e| e.event == "CanaryTriggered")
+            .collect();
         assert!(!triggered.is_empty());
-        assert!(triggered[0].metadata.as_deref().unwrap_or("").contains("10.0.0.1"));
+        assert!(triggered[0]
+            .metadata
+            .as_deref()
+            .unwrap_or("")
+            .contains("10.0.0.1"));
     }
 
     #[test]

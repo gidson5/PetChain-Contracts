@@ -233,18 +233,10 @@ pub trait TwoFactorStore: Send + Sync {
 
     /// Paginated list of all users with their 2FA status.
     /// Canary accounts are excluded from this listing.
-    fn list_users(
-        &self,
-        page: u32,
-        page_size: u32,
-    ) -> Result<Vec<UserTwoFactorSummary>, String>;
+    fn list_users(&self, page: u32, page_size: u32) -> Result<Vec<UserTwoFactorSummary>, String>;
 
     /// Force-disable 2FA for a user and append an audit log entry.
-    fn admin_disable_two_fa(
-        &self,
-        user_id: &str,
-        admin_id: &str,
-    ) -> Result<(), String>;
+    fn admin_disable_two_fa(&self, user_id: &str, admin_id: &str) -> Result<(), String>;
 
     /// Get the full audit log for a user (paginated, page starts at 1).
     fn get_audit_log(
@@ -336,7 +328,10 @@ impl TwoFactorStore for InMemoryStore {
         let mut log = self.recovery_log.lock().unwrap();
 
         // Check if already used
-        if log.iter().any(|e| e.user_id == user_id && e.code_index == code_index) {
+        if log
+            .iter()
+            .any(|e| e.user_id == user_id && e.code_index == code_index)
+        {
             return Err("InvalidRecoveryCode".to_string());
         }
 
@@ -370,18 +365,10 @@ impl TwoFactorStore for InMemoryStore {
         let mut entries: Vec<_> = log.iter().cloned().collect();
         entries.sort_by(|a, b| b.used_at.cmp(&a.used_at)); // Reverse chronological
 
-        Ok(entries
-            .into_iter()
-            .skip(offset)
-            .take(limit)
-            .collect())
+        Ok(entries.into_iter().skip(offset).take(limit).collect())
     }
 
-    fn list_users(
-        &self,
-        page: u32,
-        page_size: u32,
-    ) -> Result<Vec<UserTwoFactorSummary>, String> {
+    fn list_users(&self, page: u32, page_size: u32) -> Result<Vec<UserTwoFactorSummary>, String> {
         let data = self.data.lock().unwrap();
         let canary_flags = self.canary_flags.lock().unwrap();
         let offset = (page.saturating_sub(1) as usize) * (page_size as usize);
@@ -398,14 +385,14 @@ impl TwoFactorStore for InMemoryStore {
 
         summaries.sort_by(|a, b| a.user_id.cmp(&b.user_id));
 
-        Ok(summaries.into_iter().skip(offset).take(page_size as usize).collect())
+        Ok(summaries
+            .into_iter()
+            .skip(offset)
+            .take(page_size as usize)
+            .collect())
     }
 
-    fn admin_disable_two_fa(
-        &self,
-        user_id: &str,
-        admin_id: &str,
-    ) -> Result<(), String> {
+    fn admin_disable_two_fa(&self, user_id: &str, admin_id: &str) -> Result<(), String> {
         self.update_enabled(user_id, false)?;
         self.append_audit_log(user_id, "admin_disabled_2fa", admin_id, None)?;
         Ok(())
@@ -426,7 +413,11 @@ impl TwoFactorStore for InMemoryStore {
             .cloned()
             .collect();
 
-        Ok(entries.into_iter().skip(offset).take(page_size as usize).collect())
+        Ok(entries
+            .into_iter()
+            .skip(offset)
+            .take(page_size as usize)
+            .collect())
     }
 
     fn append_audit_log(

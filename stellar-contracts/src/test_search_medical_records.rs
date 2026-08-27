@@ -453,10 +453,7 @@ mod test_search_medical_records {
 
         // Try to update with vet2 (different vet) - should panic due to auth requirement
         env.set_auths(&[]);
-        client.update_medical_record_notes(
-            &record_id,
-            &String::from_str(&env, "Updated notes"),
-        );
+        client.update_medical_record_notes(&record_id, &String::from_str(&env, "Updated notes"));
     }
 
     #[test]

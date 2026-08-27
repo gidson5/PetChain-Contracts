@@ -33,7 +33,11 @@ pub struct EndpointConfig {
 
 impl EndpointConfig {
     pub fn new(window_secs: u64, max_failures: u32, lockout_secs: u64) -> Self {
-        Self { window_secs, max_failures, lockout_secs }
+        Self {
+            window_secs,
+            max_failures,
+            lockout_secs,
+        }
     }
 }
 
@@ -48,7 +52,14 @@ pub trait RedisBackend: Send + Sync {
     fn ttl(&self, key: &str) -> i64;
     /// Atomically: remove members with score in [0, cutoff_ms], add a new
     /// member with score `now_ms`, return the cardinality, and refresh the TTL.
-    fn sliding_window_add(&self, key: &str, now_ms: u64, cutoff_ms: u64, member: &str, ttl_secs: u64) -> u64;
+    fn sliding_window_add(
+        &self,
+        key: &str,
+        now_ms: u64,
+        cutoff_ms: u64,
+        member: &str,
+        ttl_secs: u64,
+    ) -> u64;
     /// Set `key` with a TTL (seconds).
     fn set_ex(&self, key: &str, value: &str, ttl_secs: u64);
     /// Delete one or more keys.
@@ -65,7 +76,9 @@ pub struct LiveRedisBackend {
 
 impl LiveRedisBackend {
     pub fn new(redis_url: &str) -> Result<Self, redis::RedisError> {
-        Ok(Self { client: redis::Client::open(redis_url)? })
+        Ok(Self {
+            client: redis::Client::open(redis_url)?,
+        })
     }
 }
 
@@ -78,7 +91,14 @@ impl RedisBackend for LiveRedisBackend {
         con.ttl(key).unwrap_or(-2)
     }
 
-    fn sliding_window_add(&self, key: &str, now_ms: u64, cutoff_ms: u64, member: &str, ttl_secs: u64) -> u64 {
+    fn sliding_window_add(
+        &self,
+        key: &str,
+        now_ms: u64,
+        cutoff_ms: u64,
+        member: &str,
+        ttl_secs: u64,
+    ) -> u64 {
         let mut con = match self.client.get_connection() {
             Ok(c) => c,
             Err(e) => {
@@ -88,10 +108,22 @@ impl RedisBackend for LiveRedisBackend {
         };
         let result: redis::RedisResult<(u64,)> = (|| {
             let mut pipe = redis::pipe();
-            pipe.cmd("ZREMRANGEBYSCORE").arg(key).arg(0u64).arg(cutoff_ms).ignore()
-                .cmd("ZADD").arg(key).arg(now_ms).arg(member).ignore()
-                .cmd("ZCARD").arg(key)
-                .cmd("EXPIRE").arg(key).arg(ttl_secs).ignore();
+            pipe.cmd("ZREMRANGEBYSCORE")
+                .arg(key)
+                .arg(0u64)
+                .arg(cutoff_ms)
+                .ignore()
+                .cmd("ZADD")
+                .arg(key)
+                .arg(now_ms)
+                .arg(member)
+                .ignore()
+                .cmd("ZCARD")
+                .arg(key)
+                .cmd("EXPIRE")
+                .arg(key)
+                .arg(ttl_secs)
+                .ignore();
             pipe.query(&mut con)
         })();
         match result {
@@ -171,14 +203,24 @@ impl RedisBackend for MockRedisBackend {
             Some(entry) => match entry.expires_at_ms {
                 None => -1,
                 Some(exp_ms) => {
-                    if now_ms >= exp_ms { -2 }
-                    else { ((exp_ms - now_ms + 999) / 1_000) as i64 } // ceiling division → secs
+                    if now_ms >= exp_ms {
+                        -2
+                    } else {
+                        ((exp_ms - now_ms + 999) / 1_000) as i64
+                    } // ceiling division → secs
                 }
             },
         }
     }
 
-    fn sliding_window_add(&self, key: &str, _now_ms: u64, cutoff_ms: u64, member: &str, ttl_secs: u64) -> u64 {
+    fn sliding_window_add(
+        &self,
+        key: &str,
+        _now_ms: u64,
+        cutoff_ms: u64,
+        member: &str,
+        ttl_secs: u64,
+    ) -> u64 {
         let now_ms = self.current_ms();
         let mut store = self.store.lock().unwrap();
         let entry = store.entry(key.to_string()).or_insert(MockEntry {
@@ -204,10 +246,13 @@ impl RedisBackend for MockRedisBackend {
     fn set_ex(&self, key: &str, value: &str, ttl_secs: u64) {
         let now_ms = self.current_ms();
         let mut store = self.store.lock().unwrap();
-        store.insert(key.to_string(), MockEntry {
-            zset: vec![(0, value.to_string())],
-            expires_at_ms: Some(now_ms + ttl_secs * 1_000),
-        });
+        store.insert(
+            key.to_string(),
+            MockEntry {
+                zset: vec![(0, value.to_string())],
+                expires_at_ms: Some(now_ms + ttl_secs * 1_000),
+            },
+        );
     }
 
     fn del(&self, keys: &[&str]) {
@@ -285,9 +330,13 @@ impl RateLimiter for InMemoryRateLimiter {
 
         if record.failures >= self.max_failures {
             record.locked_until = Some(now + self.lockout);
-            RateLimitResult::Blocked { retry_after_secs: self.lockout.as_secs() }
+            RateLimitResult::Blocked {
+                retry_after_secs: self.lockout.as_secs(),
+            }
         } else {
-            RateLimitResult::Allowed { remaining: self.max_failures - record.failures }
+            RateLimitResult::Allowed {
+                remaining: self.max_failures - record.failures,
+            }
         }
     }
 
@@ -320,7 +369,11 @@ pub struct SlidingWindowRateLimiter<B: RedisBackend> {
 
 impl<B: RedisBackend> SlidingWindowRateLimiter<B> {
     pub fn new(backend: B, default: EndpointConfig) -> Self {
-        Self { backend, default, endpoints: HashMap::new() }
+        Self {
+            backend,
+            default,
+            endpoints: HashMap::new(),
+        }
     }
 
     /// Register a per-endpoint config.  The `endpoint` string is matched as a
@@ -361,21 +414,33 @@ impl<B: RedisBackend> RateLimiter for SlidingWindowRateLimiter<B> {
 
         let lockout_ttl = self.backend.ttl(&lockout_key);
         if lockout_ttl > 0 {
-            return RateLimitResult::Blocked { retry_after_secs: lockout_ttl as u64 };
+            return RateLimitResult::Blocked {
+                retry_after_secs: lockout_ttl as u64,
+            };
         }
 
         let now_ms = Self::now_ms();
         let cutoff_ms = now_ms.saturating_sub(cfg.window_secs * 1_000);
         let member = Self::unique_member();
 
-        let count = self.backend.sliding_window_add(&window_key, now_ms, cutoff_ms, &member, cfg.window_secs);
+        let count = self.backend.sliding_window_add(
+            &window_key,
+            now_ms,
+            cutoff_ms,
+            &member,
+            cfg.window_secs,
+        );
 
         if count >= cfg.max_failures as u64 {
             self.backend.set_ex(&lockout_key, "1", cfg.lockout_secs);
-            return RateLimitResult::Blocked { retry_after_secs: cfg.lockout_secs };
+            return RateLimitResult::Blocked {
+                retry_after_secs: cfg.lockout_secs,
+            };
         }
 
-        RateLimitResult::Allowed { remaining: cfg.max_failures - count as u32 }
+        RateLimitResult::Allowed {
+            remaining: cfg.max_failures - count as u32,
+        }
     }
 
     fn record_success(&self, key: &str) {
@@ -405,7 +470,9 @@ impl RedisRateLimiter {
     ) -> Result<Self, redis::RedisError> {
         let backend = LiveRedisBackend::new(redis_url)?;
         let cfg = EndpointConfig::new(window_secs, max_failures, lockout_secs);
-        Ok(Self { inner: SlidingWindowRateLimiter::new(backend, cfg) })
+        Ok(Self {
+            inner: SlidingWindowRateLimiter::new(backend, cfg),
+        })
     }
 }
 
